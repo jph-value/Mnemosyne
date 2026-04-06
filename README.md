@@ -17,7 +17,9 @@ A high-performance agentic memory engine for LLM agents with unified memory coor
 ## Architecture
 
 ```
-rememnosyne/
+remeMnemosyne
+
+/
 ├── crates/
 │   ├── core          # Rust - Types, traits, errors
 │   ├── semantic      # Rust - TurboQuant, HNSW index
