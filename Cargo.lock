@@ -575,153 +575,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mnemosyne-cognitive"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dashmap",
- "mnemosyne-core",
- "parking_lot 0.12.5",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "serde",
- "serde_json",
- "thiserror",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-engine"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bincode",
- "chrono",
- "dashmap",
- "mnemosyne-cognitive",
- "mnemosyne-core",
- "mnemosyne-episodic",
- "mnemosyne-graph",
- "mnemosyne-semantic",
- "mnemosyne-storage",
- "mnemosyne-temporal",
- "parking_lot 0.12.5",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-episodic"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dashmap",
- "mnemosyne-core",
- "parking_lot 0.12.5",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-graph"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dashmap",
- "mnemosyne-core",
- "parking_lot 0.12.5",
- "petgraph",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-semantic"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dashmap",
- "half",
- "mnemosyne-core",
- "parking_lot 0.12.5",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-storage"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bincode",
- "chrono",
- "mnemosyne-core",
- "rocksdb",
- "serde",
- "serde_json",
- "sled",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "mnemosyne-temporal"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dashmap",
- "mnemosyne-core",
- "parking_lot 0.12.5",
- "rayon",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -922,6 +775,153 @@ name = "regex-syntax"
 version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
+
+[[package]]
+name = "rememnemosyne-cognitive"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rayon",
+ "rememnemosyne-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-engine"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bincode",
+ "chrono",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rayon",
+ "rememnemosyne-cognitive",
+ "rememnemosyne-core",
+ "rememnemosyne-episodic",
+ "rememnemosyne-graph",
+ "rememnemosyne-semantic",
+ "rememnemosyne-storage",
+ "rememnemosyne-temporal",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-episodic"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rayon",
+ "rememnemosyne-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-graph"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "petgraph",
+ "rayon",
+ "rememnemosyne-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-semantic"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dashmap",
+ "half",
+ "parking_lot 0.12.5",
+ "rayon",
+ "rememnemosyne-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-storage"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bincode",
+ "chrono",
+ "rememnemosyne-core",
+ "rocksdb",
+ "serde",
+ "serde_json",
+ "sled",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rememnemosyne-temporal"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rayon",
+ "rememnemosyne-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
 
 [[package]]
 name = "rocksdb"
