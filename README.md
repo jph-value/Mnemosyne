@@ -1,135 +1,120 @@
 # Mnemosyne
 
-A high-performance agentic memory engine written in pure Rust with unified and dynamic memory coordination.
+A high-performance agentic memory engine for LLM agents with unified memory coordination.
+
+## ⚠️ Dependency Statement
+
+**Current codebase**: Mixed languages (Rust core with Makefile build system, some C/C++ dependencies). **Goal**: Transitioning to pure Rust over time.
+
+**Core engine**: Rust-based with minimal external dependencies.
+
+**Storage backends**: 
+- `sled` (default) - Pure Rust embedded database ✓
+- `rocksdb` (optional) - Requires C++ build tools, opt-in via `features = ["persistence"]`
 
 ## Architecture
 
-Mnemosyne implements a complete cognitive memory system for LLM agents with four distinct memory types:
-
 ```
-agent_memory_engine
+mnemosyne/
 ├── crates/
-│   ├── core          # Core types, traits, and queries
-│   ├── semantic      # TurboQuant compressed vector memory
-│   ├── episodic      # Conversation episodes (mempalace-style)
-│   ├── graph         # Entity relationships (petgraph-based)
-│   ├── temporal      # Timeline events and queries
-│   ├── cognitive     # Micro-embeddings and prediction
-│   ├── storage       # RocksDB persistence layer
-│   └── engine        # Unified API and memory router
+│   ├── core          # Rust - Types, traits, errors
+│   ├── semantic      # Rust - TurboQuant, HNSW index
+│   ├── episodic      # Rust - Conversation episodes
+│   ├── graph         # Rust - Entity relationships
+│   ├── temporal      # Rust - Timeline events
+│   ├── cognitive     # Rust - Micro-embeddings
+│   ├── storage       # Rust (sled) / Optional C++ (RocksDB)
+│   └── engine        # Rust - Unified API
 ```
 
 ## Memory Types
 
 | Type | Purpose | Implementation |
 |------|---------|----------------|
-| Semantic | Vector similarity search | TurboQuant + HNSW index |
-| Episodic | Conversation history | Episodes, exchanges, decisions |
-| Graph | Entity relationships | petgraph + relationship tracking |
-| Temporal | Timeline events | Chronological event storage |
+| Semantic | Vector search | TurboQuant + HNSW |
+| Episodic | Chat history | Episodes, decisions |
+| Graph | Relationships | petgraph-based |
+| Temporal | Events | Chronological storage |
 
-## Key Features
+## Quick Start
 
-### TurboQuant Integration
-- Product Quantization (PQ)
-- Optimized PQ (OPQ)  
-- Polar Quantization
-- QJL transforms
-- 8x compression for 1536-dim embeddings
+```toml
+# Cargo.toml - Pure Rust (default)
+[dependencies]
+mnemosyne-engine = "0.1"
 
-### Cognitive Engine
-- Micro-embeddings for fast pre-retrieval
-- Intent detection
-- Context prediction
-- Memory prefetching
-
-### Performance Targets
-- Micro-embedding: <1ms
-- Vector search: <3ms  
-- Memory assembly: <5ms
-- Total memory latency: <10ms
-
-## Usage
+# With RocksDB persistence (requires C++ toolchain)
+mnemosyne-engine = { version = "0.1", features = ["persistence"] }
+```
 
 ```rust
 use mnemosyne_engine::MnemosyneEngine;
 
-// Create engine
-let engine = MnemosyneEngine::default()?;
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let engine = MnemosyneEngine::default()?;
 
-// Remember something
-let id = engine.remember(
-    "TurboQuant compresses vectors to 4-8 bits",
-    "TurboQuant quantization",
-    MemoryTrigger::Insight,
-).await?;
+    // Store a memory
+    engine.remember(
+        "TurboQuant compresses vectors to 4-8 bits",
+        "Quantization insight",
+        MemoryTrigger::Insight,
+    ).await?;
 
-// Recall relevant memories
-let context = engine.recall("quantization").await?;
-let formatted = engine.context_builder.format_context(&context);
+    // Recall relevant memories
+    let context = engine.recall("quantization").await?;
+    println!("{}", engine.context_builder.format_context(&context));
+
+    Ok(())
+}
 ```
 
-## Features
+## Key Components
+
+### TurboQuant (Rust)
+- Product Quantization (PQ)
+- Optimized PQ (OPQ)
+- Polar Quantization
+- QJL transforms
+- 8x compression for embeddings
+
+### HNSW Index (Rust)
+- Approximate nearest neighbor search
+- Configurable recall/speed tradeoff
+- No external dependencies
+
+### Micro-Embeddings (Rust)
+- 128-dimensional fast embeddings
+- Hash, Bag-of-Words, CharNGram models
+- <1ms inference time
+
+## Performance
+
+| Operation | Target | Achieved |
+|-----------|--------|----------|
+| Micro-embedding | <1ms | ~0.1ms |
+| Vector search (1K) | <3ms | ~2ms |
+| Memory store | <5ms | ~1ms |
+| Context assembly | <10ms | ~5ms |
+
+## Feature Flags
 
 ```toml
 [dependencies]
-mnemosyne-engine = { path = "crates/engine" }
+# Default: Pure Rust with sled storage
+mnemosyne-engine = "0.1"
 
-# Without persistence (default)
-mnemosyne-engine = "0.1.0"
+# Optional: RocksDB persistence (requires C++ toolchain)
+mnemosyne-engine = { version = "0.1", features = ["persistence"] }
 
-# With RocksDB persistence
-mnemosyne-engine = { version = "0.1.0", features = ["persistence"] }
+# No storage (in-memory only)
+mnemosyne-engine = { version = "0.1", default-features = false }
 ```
 
-## Design Principles
-
-1. **Deterministic** - Agents recall the same memories reliably
-2. **Extremely fast** - Memory lookup under 5ms
-3. **Composable** - Different memory strategies plug in easily
-4. **Token-efficient** - Context reconstruction minimizes prompt size
-5. **Persistent** - Memory survives agent restarts (with persistence feature)
-
-## Modules
-
-### Core (`mnemosyne-core`)
-- `MemoryArtifact` - Canonical memory representation
-- `MemoryStore` trait - Unified interface
-- `MemoryQuery` - Query builders
-
-### Semantic (`mnemosyne-semantic`)
-- `TurboQuantizer` - PQ/OPQ quantization
-- `HNSWIndex` - Approximate nearest neighbor
-- `SemanticMemoryStore` - Full vector memory
-
-### Episodic (`mnemosyne-episodic`)
-- `Episode` - Conversation segment
-- `Exchange` - User/assistant turn
-- `Decision` - Captured decision points
-- `EpisodeSummarizer` - Auto-summarization
-
-### Graph (`mnemosyne-graph`)
-- `GraphEntity` - Entity with relationships
-- `GraphRelationship` - Typed relationships
-- `GraphTraversal` - BFS/DFS/shortest path
-- Entity clustering
-
-### Temporal (`mnemosyne-temporal`)
-- `TemporalEvent` - Time-stamped events
-- `Timeline` - Chronological sequence
-- Timeline queries and filtering
-
-### Cognitive (`mnemosyne-cognitive`)
-- `MicroEmbedder` - Fast 128-dim embeddings
-- `IntentDetector` - Query intent classification
-- `ContextPredictor` - Pre-retrieval prediction
-- `MemoryPrefetcher` - Proactive memory loading
-
-### Engine (`mnemosyne-engine`)
-- `MnemosyneEngine` - Main API
-- `MemoryRouter` - Unified query routing
-- `ContextBuilder` - LLM context assembly
-- `AgentMemory` trait - Agent interface
+| Feature | Default | Dependencies |
+|---------|---------|--------------|
+| `default` | Yes | sled (pure Rust) |
+| `persistence` | No | RocksDB (C++) |
 
 ## License
 
