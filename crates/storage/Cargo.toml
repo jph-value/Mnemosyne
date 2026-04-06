@@ -2,6 +2,7 @@
 name = "mnemosyne-storage"
 version.workspace = true
 edition.workspace = true
+description = "Pluggable storage backends for Mnemosyne memory engine"
 
 [dependencies]
 mnemosyne-core = { path = "../core" }
@@ -13,11 +14,17 @@ serde_json = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
-rocksdb = { workspace = true, optional = true }
-memmap2 = { workspace = true }
 bincode = { workspace = true }
 tracing = { workspace = true }
 
+# Pure Rust backends
+sled = { version = "0.34", optional = true }
+
+# Optional C++ backend (explicit opt-in)
+rocksdb = { workspace = true, optional = true }
+
 [features]
-default = ["rocksdb"]
-rocksdb-storage = ["rocksdb"]
+default = ["sled-storage"]
+sled-storage = ["sled"]
+persistence = ["rocksdb"]
+bench = []
