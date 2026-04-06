@@ -45,18 +45,18 @@ remeMnemosyne
 ```toml
 # Cargo.toml - Pure Rust (default)
 [dependencies]
-rememnosyne-engine = "0.1"
+rememnemosyne-engine = "0.1"
 
 # With RocksDB persistence (requires C++ toolchain)
-rememnosyne-engine = { version = "0.1", features = ["persistence"] }
+rememnemosyne-engine = { version = "0.1", features = ["persistence"] }
 ```
 
 ```rust
-use rememnosyne_engine::RememnosyneEngine;
+use rememnemosyne_engine::RemeMnemosyneEngine;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let engine = RememnosyneEngine::default()?;
+    let engine = RemeMnemosyneEngine::default()?;
 
     // Store a memory
     engine.remember(
@@ -106,13 +106,13 @@ async fn main() -> anyhow::Result<()> {
 ```toml
 [dependencies]
 # Default: Pure Rust with sled storage
-rememnosyne-engine = { version = "0.1", default-features = ["rememnosyne-storage/sled-storage"] }
+rememnemosyne-engine = { version = "0.1", default-features = ["rememnemosyne-storage/sled-storage"] }
 
 # Optional: RocksDB persistence (requires C++ toolchain)
-rememnosyne-engine = { version = "0.1", features = ["rememnosyne-storage/persistence"] }
+rememnemosyne-engine = { version = "0.1", features = ["rememnemosyne-storage/persistence"] }
 
 # No storage (in-memory only)
-rememnosyne-engine = { version = "0.1", default-features = false }
+rememnemosyne-engine = { version = "0.1", default-features = false }
 ```
 
 | Feature | Default | Dependencies |
