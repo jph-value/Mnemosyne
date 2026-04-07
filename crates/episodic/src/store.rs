@@ -306,6 +306,21 @@ impl MemoryStore for EpisodicMemoryStore {
         if let Some(ref text) = query.text {
             let episodes = self.search_episodes(text).await;
             for episode in episodes {
+                // Filter by session if specified
+                if let Some(ref session_id) = query.session_id {
+                    if &episode.session_id != session_id {
+                        continue;
+                    }
+                }
+
+                // Filter by importance if specified
+                if let Some(min_importance) = query.min_importance {
+                    let min_score = min_importance as u8 as f32 / 4.0;
+                    if episode.importance < min_score {
+                        continue;
+                    }
+                }
+
                 let artifact = MemoryArtifact::new(
                     MemoryType::Episodic,
                     episode.title.clone(),
