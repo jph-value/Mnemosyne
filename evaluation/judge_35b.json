@@ -1,0 +1,25 @@
+{
+  "without_memory": {
+    "overall": 0.32999999999999996,
+    "relevance": 0.38,
+    "factual_accuracy": 0.36,
+    "completeness": 0.27999999999999997,
+    "coherence": 0.36,
+    "hallucination_rate": 0.0
+  },
+  "with_memory": {
+    "overall": 0.7,
+    "relevance": 0.8400000000000001,
+    "factual_accuracy": 0.78,
+    "completeness": 0.58,
+    "coherence": 0.7,
+    "hallucination_rate": 0.0
+  },
+  "improvement": {
+    "overall": 0.37,
+    "relevance": 0.4600000000000001,
+    "factual_accuracy": 0.42000000000000004,
+    "completeness": 0.3,
+    "coherence": 0.33999999999999997
+  }
+}

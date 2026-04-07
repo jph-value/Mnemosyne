@@ -86,9 +86,13 @@ impl RememnosyneEngine {
         let graph = Arc::new(GraphMemoryStore::new(config.graph.clone()));
         let temporal = Arc::new(TemporalMemoryStore::new(config.temporal.clone()));
 
+        // Ensure router embedding dimensions match semantic store
+        let mut router_config = config.router.clone();
+        router_config.embedding_dimensions = config.semantic.dimensions;
+        
         // Create router
         let router = Arc::new(MemoryRouter::new(
-            config.router.clone(),
+            router_config,
             semantic,
             episodic,
             graph,
@@ -142,13 +146,14 @@ impl RememnosyneEngine {
         summary: impl Into<String>,
         trigger: MemoryTrigger,
     ) -> Result<MemoryId> {
-        // Generate embedding placeholder
-        let embedding = Vec::new(); // Would use actual embedding model
+        // Generate embedding using the router's embedder
+        let content_str = content.into();
+        let embedding = self.generate_embedding(&content_str).await;
 
         let artifact = MemoryArtifact::new(
             MemoryType::Semantic,
             summary,
-            content,
+            content_str,
             embedding,
             trigger,
         );
@@ -165,6 +170,12 @@ impl RememnosyneEngine {
         }
 
         Ok(id)
+    }
+
+    /// Generate embedding for text
+    async fn generate_embedding(&self, text: &str) -> Vec<f32> {
+        // Use the router's embedder to generate embedding
+        self.router.generate_embedding(text).await
     }
 
     /// Recall memories based on query

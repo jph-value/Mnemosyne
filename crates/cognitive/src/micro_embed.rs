@@ -1,3 +1,4 @@
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -47,8 +48,8 @@ pub struct MicroEmbedder {
     vocab: HashMap<String, usize>,
     /// IDF weights for vocabulary
     idf_weights: Vec<f32>,
-    /// Cache for computed embeddings
-    cache: HashMap<String, Vec<f32>>,
+    /// Cache for computed embeddings (thread-safe)
+    cache: RwLock<HashMap<String, Vec<f32>>>,
     /// Character n-grams for CharNGram model
     ngram_index: HashMap<String, usize>,
 }
@@ -59,7 +60,7 @@ impl MicroEmbedder {
             config,
             vocab: HashMap::new(),
             idf_weights: Vec::new(),
-            cache: HashMap::new(),
+            cache: RwLock::new(HashMap::new()),
             ngram_index: HashMap::new(),
         }
     }
@@ -71,6 +72,9 @@ impl MicroEmbedder {
 
     /// Build vocabulary from training texts
     pub fn build_vocabulary(&mut self, texts: &[String]) {
+        // Clear cache since embeddings will change
+        self.clear_cache();
+
         let mut word_counts: HashMap<String, usize> = HashMap::new();
         let mut doc_counts: HashMap<String, usize> = HashMap::new();
         let n_docs = texts.len();
@@ -108,17 +112,30 @@ impl MicroEmbedder {
 
     /// Generate micro-embedding for text
     pub fn embed(&self, text: &str) -> Vec<f32> {
-        // Check cache (read-only)
-        if let Some(cached) = self.cache.get(text) {
-            return cached.clone();
+        // Check cache
+        {
+            let cache = self.cache.read();
+            if let Some(cached) = cache.get(text) {
+                return cached.clone();
+            }
         }
 
-        match self.config.model_type {
+        let embedding = match self.config.model_type {
             MicroEmbedModel::Hash => self.embed_hash(text),
             MicroEmbedModel::BagOfWords => self.embed_bow(text),
             MicroEmbedModel::CharNGram => self.embed_char_ngram(text),
             MicroEmbedModel::Custom => self.embed_hash(text), // Fallback
+        };
+
+        // Store in cache
+        {
+            let mut cache = self.cache.write();
+            if cache.len() < self.config.cache_size {
+                cache.insert(text.to_string(), embedding.clone());
+            }
         }
+
+        embedding
     }
 
     /// Fast hash-based embedding
@@ -142,6 +159,11 @@ impl MicroEmbedder {
 
     /// Bag-of-words with TF-IDF
     fn embed_bow(&self, text: &str) -> Vec<f32> {
+        // Fall back to hash embedding if vocabulary is empty
+        if self.vocab.is_empty() {
+            return self.embed_hash(text);
+        }
+
         let mut embedding = vec![0.0; self.config.dimensions];
         let words = self.tokenize(text);
         let mut term_counts: HashMap<String, usize> = HashMap::new();
@@ -169,15 +191,27 @@ impl MicroEmbedder {
 
     /// Character n-gram embedding
     fn embed_char_ngram(&self, text: &str) -> Vec<f32> {
+        // Fall back to hash embedding if ngram index is empty
+        if self.ngram_index.is_empty() {
+            return self.embed_hash(text);
+        }
+
         let mut embedding = vec![0.0; self.config.dimensions];
         let text_lower = text.to_lowercase();
 
         // Extract character 3-grams
         for i in 0..text_lower.len().saturating_sub(2) {
             let ngram = &text_lower[i..i + 3];
-            let hash = self.fnv_hash(ngram);
-            let idx = hash as usize % self.config.dimensions;
-            embedding[idx] += 1.0;
+            if let Some(&idx) = self.ngram_index.get(ngram) {
+                if idx < self.config.dimensions {
+                    embedding[idx] += 1.0;
+                }
+            } else {
+                // Use hash for unknown ngrams
+                let hash = self.fnv_hash(ngram);
+                let idx = hash as usize % self.config.dimensions;
+                embedding[idx] += 0.5; // Lower weight for unknown ngrams
+            }
         }
 
         if self.config.normalize {
@@ -210,8 +244,8 @@ impl MicroEmbedder {
     }
 
     /// Clear the cache
-    pub fn clear_cache(&mut self) {
-        self.cache.clear();
+    pub fn clear_cache(&self) {
+        self.cache.write().clear();
     }
 
     // Private helper methods

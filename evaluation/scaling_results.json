@@ -1,0 +1,63 @@
+{
+  "10": {
+    "avg_recall_time_ms": 0.0038782755533854165,
+    "avg_precision": 0.8,
+    "avg_recall": 0.8,
+    "avg_f1": 0.8,
+    "memory_usage_mb": 0.0036220550537109375
+  },
+  "50": {
+    "avg_recall_time_ms": 0.010140736897786459,
+    "avg_precision": 0.8,
+    "avg_recall": 0.8,
+    "avg_f1": 0.8,
+    "memory_usage_mb": 0.018148422241210938,
+    "time_scaling_factor": 2.614754098360656,
+    "f1_degradation_pct": 0.0
+  },
+  "100": {
+    "avg_recall_time_ms": 0.022602081298828125,
+    "avg_precision": 0.8,
+    "avg_recall": 0.4,
+    "avg_f1": 0.5333333333333333,
+    "memory_usage_mb": 0.03630638122558594,
+    "time_scaling_factor": 5.827868852459017,
+    "f1_degradation_pct": 33.333333333333336
+  },
+  "500": {
+    "avg_recall_time_ms": 0.0919024149576823,
+    "avg_precision": 0.8,
+    "avg_recall": 0.08000000000000002,
+    "avg_f1": 0.14545454545454545,
+    "memory_usage_mb": 0.18195152282714844,
+    "time_scaling_factor": 23.69672131147541,
+    "f1_degradation_pct": 81.81818181818183
+  },
+  "1000": {
+    "avg_recall_time_ms": 0.2381006876627604,
+    "avg_precision": 0.8,
+    "avg_recall": 0.04000000000000001,
+    "avg_f1": 0.07619047619047618,
+    "memory_usage_mb": 0.36400794982910156,
+    "time_scaling_factor": 61.39344262295082,
+    "f1_degradation_pct": 90.47619047619048
+  },
+  "5000": {
+    "avg_recall_time_ms": 0.9847482045491537,
+    "avg_precision": 0.8,
+    "avg_recall": 0.008,
+    "avg_f1": 0.015841584158415842,
+    "memory_usage_mb": 1.8280887603759766,
+    "time_scaling_factor": 253.91393442622953,
+    "f1_degradation_pct": 98.01980198019803
+  },
+  "10000": {
+    "avg_recall_time_ms": 2.8121153513590498,
+    "avg_precision": 0.8,
+    "avg_recall": 0.004,
+    "avg_f1": 0.007960199004975126,
+    "memory_usage_mb": 3.6581897735595703,
+    "time_scaling_factor": 725.0942622950821,
+    "f1_degradation_pct": 99.00497512437812
+  }
+}

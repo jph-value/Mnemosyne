@@ -1,0 +1,44 @@
+{
+  "inline_hints": {
+    "n_queries": 3,
+    "avg_generation_time": 13.513634522755941,
+    "avg_tokens_per_sec": 11.170455085773694,
+    "avg_response_length": 721.3333333333334,
+    "delta_time": 5.264365196228027,
+    "delta_tps": -0.7812882557486791,
+    "delta_length": 221.00000000000006
+  },
+  "full_memory": {
+    "n_queries": 3,
+    "avg_generation_time": 14.084815581639608,
+    "avg_tokens_per_sec": 10.672832902473779,
+    "avg_response_length": 716,
+    "delta_time": 5.835546255111694,
+    "delta_tps": -1.2789104390485946,
+    "delta_length": 215.66666666666669
+  },
+  "baseline_minimal": {
+    "n_queries": 3,
+    "avg_generation_time": 8.249269326527914,
+    "avg_tokens_per_sec": 11.951743341522373,
+    "avg_response_length": 500.3333333333333
+  },
+  "content_plain": {
+    "n_queries": 3,
+    "avg_generation_time": 12.577179431915283,
+    "avg_tokens_per_sec": 11.955001969227057,
+    "avg_response_length": 780,
+    "delta_time": 4.327910105387369,
+    "delta_tps": 0.0032586277046835477,
+    "delta_length": 279.6666666666667
+  },
+  "format_only": {
+    "n_queries": 3,
+    "avg_generation_time": 12.256770054499308,
+    "avg_tokens_per_sec": 12.247771981554386,
+    "avg_response_length": 758,
+    "delta_time": 4.007500727971394,
+    "delta_tps": 0.2960286400320129,
+    "delta_length": 257.6666666666667
+  }
+}

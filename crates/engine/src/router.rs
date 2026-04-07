@@ -14,6 +14,7 @@ pub struct MemoryRouterConfig {
     pub enable_prefetch: bool,
     pub prefetch_threshold: f32,
     pub combine_scores: bool,
+    pub embedding_dimensions: usize,
 }
 
 impl Default for MemoryRouterConfig {
@@ -23,6 +24,7 @@ impl Default for MemoryRouterConfig {
             enable_prefetch: true,
             prefetch_threshold: 0.5,
             combine_scores: true,
+            embedding_dimensions: 1536, // Match semantic store default
         }
     }
 }
@@ -47,6 +49,14 @@ impl MemoryRouter {
         graph: Arc<GraphMemoryStore>,
         temporal: Arc<TemporalMemoryStore>,
     ) -> Self {
+        // Create micro-embedder with matching dimensions
+        let embedder_config = rememnemosyne_cognitive::MicroEmbedConfig {
+            dimensions: config.embedding_dimensions,
+            model_type: rememnemosyne_cognitive::MicroEmbedModel::Hash,
+            normalize: true,
+            cache_size: 10000,
+        };
+        
         Self {
             config,
             semantic,
@@ -55,7 +65,7 @@ impl MemoryRouter {
             temporal,
             predictor: Arc::new(parking_lot::RwLock::new(ContextPredictor::new(Default::default()))),
             prefetcher: Arc::new(parking_lot::RwLock::new(MemoryPrefetcher::new(Default::default()))),
-            embedder: Arc::new(parking_lot::RwLock::new(MicroEmbedder::fast())),
+            embedder: Arc::new(parking_lot::RwLock::new(MicroEmbedder::new(embedder_config))),
         }
     }
 
@@ -66,16 +76,28 @@ impl MemoryRouter {
 
         // Generate micro-embedding for query if text provided
         let query_embedding = if let Some(ref text) = query.text {
-            let mut embedder = self.embedder.write();
-            let embedding = embedder.embed(text);
-            
+            let embedding = {
+                let embedder = self.embedder.read();
+                embedder.embed(text)
+            };
+
             // Update predictor context
             let mut predictor = self.predictor.write();
             predictor.add_context(text, vec![]);
-            
+
             Some(embedding)
         } else {
             query.embedding.clone()
+        };
+
+        // Build an enriched query with the embedding injected
+        // so the semantic store can use HNSW vector search
+        let enriched_query = if query_embedding.is_some() && query.embedding.is_none() {
+            let mut q = query.clone();
+            q.embedding = query_embedding.clone();
+            q
+        } else {
+            query.clone()
         };
 
         // Prefetch if enabled
@@ -87,8 +109,8 @@ impl MemoryRouter {
             }
         }
 
-        // Query semantic memory
-        if let Ok(semantic_results) = self.semantic.query(query).await {
+        // Query semantic memory (now uses HNSW via enriched embedding)
+        if let Ok(semantic_results) = self.semantic.query(&enriched_query).await {
             for memory in semantic_results.into_iter().take(self.config.max_results_per_store) {
                 let relevance = memory.compute_relevance();
                 response.add_result(memory, MemoryType::Semantic, relevance);
@@ -96,7 +118,7 @@ impl MemoryRouter {
         }
 
         // Query episodic memory
-        if let Ok(episodic_results) = self.episodic.query(query).await {
+        if let Ok(episodic_results) = self.episodic.query(&enriched_query).await {
             for memory in episodic_results.into_iter().take(self.config.max_results_per_store) {
                 let relevance = memory.compute_relevance();
                 response.add_result(memory, MemoryType::Episodic, relevance);
@@ -190,6 +212,23 @@ impl MemoryRouter {
             episodic_memories: episodic_count,
             graph_entities: graph_stats.entity_count,
             graph_relationships: graph_stats.relationship_count,
+        }
+    }
+
+    /// Generate embedding for text using the micro-embedder
+    pub async fn generate_embedding(&self, text: &str) -> Vec<f32> {
+        let embedder = self.embedder.read();
+        let embedding = embedder.embed(text);
+        
+        // Ensure embedding has correct dimensions
+        if embedding.len() != self.config.embedding_dimensions {
+            // Pad or truncate to correct dimensions
+            let mut corrected = vec![0.0; self.config.embedding_dimensions];
+            let copy_len = std::cmp::min(embedding.len(), self.config.embedding_dimensions);
+            corrected[..copy_len].copy_from_slice(&embedding[..copy_len]);
+            corrected
+        } else {
+            embedding
         }
     }
 }
