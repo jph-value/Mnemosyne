@@ -146,14 +146,24 @@ impl RememnosyneEngine {
         summary: impl Into<String>,
         trigger: MemoryTrigger,
     ) -> Result<MemoryId> {
-        // Generate embedding using the router's embedder
         let content_str = content.into();
-        let embedding = self.generate_embedding(&content_str).await;
+
+        // Sanitize content before storing
+        let sanitized = crate::sanitizer::sanitize_input(&content_str);
+        let safe_content = if sanitized.is_suspicious {
+            tracing::warn!("Suspicious input detected in remember(): {:?}", sanitized.detected_patterns);
+            sanitized.clean_text
+        } else {
+            sanitized.clean_text
+        };
+
+        // Generate embedding using the router's embedder
+        let embedding = self.generate_embedding(&safe_content).await;
 
         let artifact = MemoryArtifact::new(
             MemoryType::Semantic,
             summary,
-            content_str,
+            safe_content,
             embedding,
             trigger,
         );
@@ -180,9 +190,18 @@ impl RememnosyneEngine {
 
     /// Recall memories based on query
     pub async fn recall(&self, query: &str) -> Result<ContextBundle> {
+        // Sanitize query before processing
+        let sanitized = crate::sanitizer::sanitize_input(query);
+        let safe_query = if sanitized.is_suspicious {
+            tracing::warn!("Suspicious query in recall(): {:?}", sanitized.detected_patterns);
+            &sanitized.clean_text
+        } else {
+            query
+        };
+
         let mem_query = MemoryQuery::new()
-            .with_text(query)
-            .with_limit(20);
+            .with_text(safe_query)
+            .with_limit(self.config.context.max_memories);
 
         let response = self.router.query(&mem_query).await?;
         let bundle = self.context_builder.build_context(&response, vec![], vec![]);
@@ -193,7 +212,11 @@ impl RememnosyneEngine {
     /// Recall with formatted context string
     pub async fn recall_formatted(&self, query: &str) -> Result<String> {
         let bundle = self.recall(query).await?;
-        Ok(self.context_builder.format_context(&bundle))
+        let formatted = self.context_builder.format_context(&bundle);
+
+        // Sanitize the context output to strip control characters
+        let safe_context = crate::sanitizer::sanitize_context(&formatted);
+        Ok(safe_context)
     }
 
     /// Search entities by name/description

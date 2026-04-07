@@ -181,11 +181,33 @@ impl MemoryArtifact {
 
     pub fn compute_relevance(&self) -> f32 {
         let age_hours = (Utc::now() - self.timestamp).num_hours() as f32;
-        let age_factor = 1.0 / (1.0 + age_hours / 168.0); // Week half-life
-        let access_factor = (self.access_count as f32).log10() * 0.1;
-        let importance_factor = self.importance as u8 as f32 * 0.25;
 
-        (age_factor + access_factor + importance_factor).min(1.0)
+        // Exponential temporal decay: half-life of 168 hours (1 week)
+        let temporal_decay = (-age_hours / 168.0_f32).exp();
+
+        // Access frequency boost: log-scaled, capped at 0.5
+        let access_boost = if self.access_count > 0 {
+            ((self.access_count as f32).ln() * 0.15).min(0.5)
+        } else {
+            0.0
+        };
+
+        // Importance weight: 0.25 per level
+        let importance_weight = self.importance as u8 as f32 * 0.25;
+
+        // Recency boost: if accessed within last 24h, extra weight
+        let recency_boost = if let Some(last) = self.last_accessed {
+            let hours_since_access = (Utc::now() - last).num_hours() as f32;
+            if hours_since_access < 24.0 {
+                0.1 * (1.0 - hours_since_access / 24.0)
+            } else {
+                0.0
+            }
+        } else {
+            0.0
+        };
+
+        (temporal_decay * 0.5 + access_boost + importance_weight + recency_boost).min(1.0)
     }
 }
 

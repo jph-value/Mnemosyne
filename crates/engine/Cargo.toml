@@ -24,7 +24,8 @@ dashmap = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }
+regex = "1"
 
 [features]
-default = ["rememnemosyne-storage/sled-storage"]
+default = ["rememnemosyne-storage/sled-storage", "rememnemosyne-storage/archive"]
 persistence = ["rememnemosyne-storage/persistence"]
