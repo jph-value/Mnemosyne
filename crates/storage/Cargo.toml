@@ -23,8 +23,12 @@ sled = { version = "0.34", optional = true }
 # Optional C++ backend (explicit opt-in)
 rocksdb = { workspace = true, optional = true }
 
+# Archive compression
+zstd = "0.13"
+
 [features]
-default = ["sled-storage"]
+default = ["sled-storage", "archive"]
 sled-storage = ["sled"]
 persistence = ["rocksdb"]
+archive = []
 bench = []

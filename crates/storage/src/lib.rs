@@ -30,11 +30,17 @@ pub mod rocks_backend;
 
 pub mod snapshot;
 
+#[cfg(feature = "archive")]
+pub mod archive;
+
 pub use backend::*;
 pub use sled_backend::SledStorage;
 
 #[cfg(feature = "persistence")]
 pub use rocks_backend::RocksStorage;
+
+#[cfg(feature = "archive")]
+pub use archive::{ArchiveCatalog, ArchiveConfig, ArchiveEntry, ArchiveStats, MemoryArchive};
 
 use rememnemosyne_core::Result;
 

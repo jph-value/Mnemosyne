@@ -13,6 +13,21 @@ pub struct ContextBuilderConfig {
     pub include_timeline: bool,
     pub prioritize_decisions: bool,
     pub include_summaries: bool,
+    pub format_strategy: ContextFormatStrategy,
+}
+
+/// Strategies for formatting memory context into prompts.
+/// Different strategies work better with different model sizes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContextFormatStrategy {
+    /// Memory as brief inline hints in user message (best for small models)
+    InlineHints,
+    /// Structured memory block before system prompt (balanced)
+    SystemPrefix,
+    /// Structured memory block inside system prompt (default, best for large models)
+    ContextBlock,
+    /// Memory as few-shot example pairs (best for instruction-following models)
+    FewShot,
 }
 
 impl Default for ContextBuilderConfig {
@@ -25,6 +40,7 @@ impl Default for ContextBuilderConfig {
             include_timeline: false,
             prioritize_decisions: true,
             include_summaries: true,
+            format_strategy: ContextFormatStrategy::ContextBlock,
         }
     }
 }
@@ -37,6 +53,54 @@ pub struct ContextBuilderEngine {
 impl ContextBuilderEngine {
     pub fn new(config: ContextBuilderConfig) -> Self {
         Self { config }
+    }
+
+    /// Create a context builder optimized for small models (2B-4B parameters)
+    pub fn for_small_model() -> Self {
+        Self {
+            config: ContextBuilderConfig {
+                max_tokens: 500,
+                max_memories: 2,
+                max_entities: 3,
+                include_relationships: false,
+                include_timeline: false,
+                prioritize_decisions: true,
+                include_summaries: false,
+                format_strategy: ContextFormatStrategy::InlineHints,
+            },
+        }
+    }
+
+    /// Create a context builder optimized for medium models (7B-13B parameters)
+    pub fn for_medium_model() -> Self {
+        Self {
+            config: ContextBuilderConfig {
+                max_tokens: 1500,
+                max_memories: 5,
+                max_entities: 5,
+                include_relationships: false,
+                include_timeline: false,
+                prioritize_decisions: true,
+                include_summaries: true,
+                format_strategy: ContextFormatStrategy::SystemPrefix,
+            },
+        }
+    }
+
+    /// Create a context builder optimized for large models (30B+ parameters)
+    pub fn for_large_model() -> Self {
+        Self {
+            config: ContextBuilderConfig {
+                max_tokens: 4000,
+                max_memories: 10,
+                max_entities: 10,
+                include_relationships: true,
+                include_timeline: false,
+                prioritize_decisions: true,
+                include_summaries: true,
+                format_strategy: ContextFormatStrategy::ContextBlock,
+            },
+        }
     }
 
     /// Build context bundle from memory response
@@ -92,6 +156,48 @@ impl ContextBuilderEngine {
 
     /// Build formatted context string for LLM
     pub fn format_context(&self, bundle: &ContextBundle) -> String {
+        match self.config.format_strategy {
+            ContextFormatStrategy::InlineHints => self.format_inline_hints(bundle),
+            ContextFormatStrategy::SystemPrefix => self.format_system_prefix(bundle),
+            ContextFormatStrategy::ContextBlock => self.format_context_block(bundle),
+            ContextFormatStrategy::FewShot => self.format_few_shot(bundle),
+        }
+    }
+
+    /// Inline hints format: memory as brief hints within user message
+    fn format_inline_hints(&self, bundle: &ContextBundle) -> String {
+        let mut parts = Vec::new();
+
+        if !bundle.memories.is_empty() {
+            let hints: Vec<String> = bundle
+                .memories
+                .iter()
+                .take(3)
+                .map(|m| m.summary.clone())
+                .collect();
+            parts.push(format!("(Consider: {})", hints.join("; ")));
+        }
+
+        parts.join("\n")
+    }
+
+    /// System prefix format: memory block before system prompt
+    fn format_system_prefix(&self, bundle: &ContextBundle) -> String {
+        let mut parts = Vec::new();
+
+        if !bundle.memories.is_empty() {
+            parts.push("## Available Memories".to_string());
+            for memory in bundle.memories.iter().take(self.config.max_memories) {
+                parts.push(format!("- {}", memory.summary));
+            }
+            parts.push(String::new());
+        }
+
+        parts.join("\n")
+    }
+
+    /// Context block format: structured memory block (default)
+    fn format_context_block(&self, bundle: &ContextBundle) -> String {
         let mut parts = Vec::new();
 
         // Header
@@ -152,6 +258,25 @@ impl ContextBuilderEngine {
                 for decision in decisions.iter().take(5) {
                     parts.push(format!("- {}", decision.summary));
                 }
+                parts.push(String::new());
+            }
+        }
+
+        parts.join("\n")
+    }
+
+    /// Few-shot format: memory as example Q&A pairs
+    fn format_few_shot(&self, bundle: &ContextBundle) -> String {
+        let mut parts = Vec::new();
+
+        if !bundle.memories.is_empty() {
+            parts.push("## Relevant Examples\n".to_string());
+            for memory in bundle.memories.iter().take(3) {
+                parts.push(format!("Q: {}", memory.summary));
+                parts.push(format!(
+                    "A: {}",
+                    memory.content.chars().take(200).collect::<String>()
+                ));
                 parts.push(String::new());
             }
         }

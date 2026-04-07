@@ -16,7 +16,10 @@ impl SnapshotManager {
     pub fn new(base_path: impl AsRef<Path>) -> Result<Self> {
         let snapshots_dir = base_path.as_ref().join("snapshots");
         std::fs::create_dir_all(&snapshots_dir).map_err(|e| {
-            rememnemosyne_core::MemoryError::Storage(format!("Failed to create snapshots dir: {}", e))
+            rememnemosyne_core::MemoryError::Storage(format!(
+                "Failed to create snapshots dir: {}",
+                e
+            ))
         })?;
 
         Ok(Self { snapshots_dir })
@@ -33,8 +36,9 @@ impl SnapshotManager {
             .map_err(|e| rememnemosyne_core::MemoryError::Serialization(e.to_string()))?;
 
         // Write data
-        std::fs::write(&snapshot_path, &serialized)
-            .map_err(|e| rememnemosyne_core::MemoryError::Storage(format!("Write failed: {}", e)))?;
+        std::fs::write(&snapshot_path, &serialized).map_err(|e| {
+            rememnemosyne_core::MemoryError::Storage(format!("Write failed: {}", e))
+        })?;
 
         // Write metadata
         let meta = SnapshotMeta {
@@ -78,12 +82,14 @@ impl SnapshotManager {
     pub fn list_snapshots(&self) -> Result<Vec<SnapshotInfo>> {
         let mut snapshots = Vec::new();
 
-        let entries = std::fs::read_dir(&self.snapshots_dir)
-            .map_err(|e| rememnemosyne_core::MemoryError::Storage(format!("Dir read failed: {}", e)))?;
+        let entries = std::fs::read_dir(&self.snapshots_dir).map_err(|e| {
+            rememnemosyne_core::MemoryError::Storage(format!("Dir read failed: {}", e))
+        })?;
 
         for entry in entries {
-            let entry = entry
-                .map_err(|e| rememnemosyne_core::MemoryError::Storage(format!("Entry error: {}", e)))?;
+            let entry = entry.map_err(|e| {
+                rememnemosyne_core::MemoryError::Storage(format!("Entry error: {}", e))
+            })?;
             let path = entry.path();
 
             if path.extension().and_then(|e| e.to_str()) == Some("meta") {

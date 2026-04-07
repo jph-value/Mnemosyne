@@ -27,9 +27,9 @@ impl Default for SemanticMemoryConfig {
             quantization_bits: 8,
             hnsw_m: 16,
             hnsw_ef_construction: 200,
-            hnsw_ef_search: 100,
+            hnsw_ef_search: 200,
             use_quantization: true,
-            flat_index_threshold: 1000,
+            flat_index_threshold: 500,
         }
     }
 }
@@ -117,20 +117,47 @@ impl SemanticMemoryStore {
             ));
         }
 
-        let results = {
+        // Check if we should use flat or HNSW index for search
+        let use_flat = {
             let hnsw = self.hnsw_index.read().await;
-            hnsw.search(query_vector, k)
+            hnsw.data.len() < self.config.flat_index_threshold
         };
 
         let mut matched = Vec::new();
-        for (idx, similarity) in results {
-            // Find the memory ID for this index
-            if let Some(entry) = self.id_to_index.iter().find(|e| *e.value() == idx) {
-                let memory_id = *entry.key();
-                if let Some(mut memory) = self.memories.get(&memory_id).map(|r| r.clone()) {
-                    if similarity >= threshold {
-                        memory.mark_accessed();
-                        matched.push((memory, similarity));
+
+        if use_flat {
+            // Search flat index
+            let flat = self.flat_index.read().await;
+            let results = flat.search(query_vector, k);
+            drop(flat);
+
+            for (idx, similarity) in results {
+                let flat = self.flat_index.read().await;
+                if idx < flat.ids.len() {
+                    let memory_id = flat.ids[idx];
+                    if let Some(mut memory) = self.memories.get(&memory_id).map(|r| r.clone()) {
+                        if similarity >= threshold {
+                            memory.mark_accessed();
+                            matched.push((memory, similarity));
+                        }
+                    }
+                }
+            }
+        } else {
+            // Search HNSW index
+            let results = {
+                let hnsw = self.hnsw_index.read().await;
+                hnsw.search(query_vector, k)
+            };
+
+            for (idx, similarity) in results {
+                if let Some(entry) = self.id_to_index.iter().find(|e| *e.value() == idx) {
+                    let memory_id = *entry.key();
+                    if let Some(mut memory) = self.memories.get(&memory_id).map(|r| r.clone()) {
+                        if similarity >= threshold {
+                            memory.mark_accessed();
+                            matched.push((memory, similarity));
+                        }
                     }
                 }
             }
