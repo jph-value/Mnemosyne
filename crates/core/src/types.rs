@@ -102,23 +102,72 @@ pub enum RelationshipType {
 }
 
 /// The core memory artifact stored across all memory types
+/// 
+/// Follows the mempalace pattern: content is verbatim (never altered),
+/// while summary is a separate pointer. This preserves full context fidelity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryArtifact {
     pub id: MemoryId,
     pub memory_type: MemoryType,
+    /// Brief summary (separate from raw content)
     pub summary: String,
+    /// Raw verbatim content (never permanently altered or summarized)
     pub content: String,
+    /// Embedding vector
     pub embedding: Vec<f32>,
+    /// Linked entities
     pub entities: Vec<EntityRef>,
+    /// Creation timestamp
     pub timestamp: DateTime<Utc>,
+    /// Session ID
     pub session_id: Option<SessionId>,
+    /// Importance level
     pub importance: Importance,
+    /// What triggered this memory
     pub trigger: MemoryTrigger,
+    /// Tags
     pub tags: Vec<String>,
+    /// Custom metadata
     pub metadata: HashMap<String, serde_json::Value>,
+    /// Parent memory ID (for hierarchical memories)
     pub parent_id: Option<MemoryId>,
+    /// Access tracking
     pub access_count: u64,
     pub last_accessed: Option<DateTime<Utc>>,
+    // ========================================================================
+    // Verbatim Preservation Fields (mempalace drawer/closet pattern)
+    // ========================================================================
+    /// Raw source content before any transformation (the "drawer")
+    pub raw_content: Option<String>,
+    /// Whether this memory has been summarized from raw content
+    pub is_summary: bool,
+    /// Reference to source document/URL if applicable
+    pub source_ref: Option<String>,
+    /// Spatial location in Memory Palace (wing/hall/room)
+    pub palace_location: Option<PalaceLocation>,
+}
+
+/// Spatial location in the Memory Palace
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PalaceLocation {
+    pub wing: String,
+    pub hall: String,
+    pub room: String,
+}
+
+impl PalaceLocation {
+    pub fn new(wing: impl Into<String>, hall: impl Into<String>, room: impl Into<String>) -> Self {
+        Self {
+            wing: wing.into(),
+            hall: hall.into(),
+            room: room.into(),
+        }
+    }
+    
+    /// Get full path string
+    pub fn path(&self) -> String {
+        format!("{}/{}/{}", self.wing, self.hall, self.room)
+    }
 }
 
 impl MemoryArtifact {
@@ -130,11 +179,12 @@ impl MemoryArtifact {
         trigger: MemoryTrigger,
     ) -> Self {
         let now = Utc::now();
+        let content = content.into();
         Self {
             id: Uuid::new_v4(),
             memory_type,
             summary: summary.into(),
-            content: content.into(),
+            content: content.clone(), // Store verbatim content
             embedding,
             entities: Vec::new(),
             timestamp: now,
@@ -146,6 +196,10 @@ impl MemoryArtifact {
             parent_id: None,
             access_count: 0,
             last_accessed: None,
+            raw_content: Some(content), // Preserve raw content separately
+            is_summary: false,
+            source_ref: None,
+            palace_location: None,
         }
     }
 
@@ -177,6 +231,62 @@ impl MemoryArtifact {
     pub fn mark_accessed(&mut self) {
         self.access_count += 1;
         self.last_accessed = Some(Utc::now());
+    }
+    
+    // ========================================================================
+    // Verbatim Preservation Methods (mempalace drawer/closet pattern)
+    // ========================================================================
+    
+    /// Set raw content separately from summary (preserves verbatim content)
+    pub fn with_raw_content(mut self, raw: impl Into<String>) -> Self {
+        self.raw_content = Some(raw.into());
+        self
+    }
+    
+    /// Mark this memory as a summary (not raw content)
+    pub fn as_summary(mut self) -> Self {
+        self.is_summary = true;
+        self
+    }
+    
+    /// Set source reference (document URL, file path, etc.)
+    pub fn with_source_ref(mut self, source: impl Into<String>) -> Self {
+        self.source_ref = Some(source.into());
+        self
+    }
+    
+    /// Set spatial location in Memory Palace
+    pub fn with_palace_location(mut self, location: PalaceLocation) -> Self {
+        self.palace_location = Some(location);
+        self
+    }
+    
+    /// Convenience: set palace location from components
+    pub fn in_palace_room(
+        mut self,
+        wing: impl Into<String>,
+        hall: impl Into<String>,
+        room: impl Into<String>,
+    ) -> Self {
+        self.palace_location = Some(PalaceLocation::new(wing, hall, room));
+        self
+    }
+    
+    /// Get effective content: prefer raw content if available, fallback to content
+    pub fn effective_content(&self) -> &str {
+        self.raw_content.as_deref().unwrap_or(&self.content)
+    }
+    
+    /// Check if this memory has preserved raw content
+    pub fn has_raw_content(&self) -> bool {
+        self.raw_content.is_some()
+    }
+    
+    /// Check if this memory is located in a specific palace room
+    pub fn is_in_palace_room(&self, wing: &str, hall: &str, room: &str) -> bool {
+        self.palace_location.as_ref().map(|loc| {
+            loc.wing == wing && loc.hall == hall && loc.room == room
+        }).unwrap_or(false)
     }
 
     #[inline]
